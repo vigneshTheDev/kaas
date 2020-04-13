@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="375.14624"
+   height="56.923"
+   viewBox="0 0 375.14625 56.923001"
+   version="1.1"
+   id="svg2069"
+   sodipodi:docname="Path 7.svg"
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)">
+  <metadata
+     id="metadata2073">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="3840"
+     inkscape:window-height="2066"
+     id="namedview2071"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:zoom="4.2106362"
+     inkscape:cx="134.37378"
+     inkscape:cy="43.518946"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2069" />
+  <defs
+     id="defs2063">
+    <filter
+       id="a"
+       x="0"
+       y="0"
+       width="393.17099"
+       height="61.924999"
+       filterUnits="userSpaceOnUse">
+      <feOffset
+         dy="4"
+         input="SourceAlpha"
+         id="feOffset2052" />
+      <feGaussianBlur
+         stdDeviation="3"
+         result="b"
+         id="feGaussianBlur2054" />
+      <feFlood
+         flood-opacity="0.161"
+         id="feFlood2056" />
+      <feComposite
+         operator="in"
+         in2="b"
+         id="feComposite2058"
+         result="result1" />
+      <feComposite
+         in="SourceGraphic"
+         in2="result1"
+         id="feComposite2060" />
+    </filter>
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath2077">
+      <rect
+         style="opacity:0.43934428;stroke-width:1.00446117"
+         id="rect2079"
+         width="375.14624"
+         height="56.923"
+         x="9"
+         y="5.0019999" />
+    </clipPath>
+  </defs>
+  <g
+     id="g2067"
+     clip-path="url(#clipPath2077)"
+     style="filter:url(#a)"
+     transform="translate(-9,-5.0019999)">
+    <path
+       d="m 445,201.845 c 15.17,-2.95 43.154,-24.236 100.979,-28.066 71.3,-4.722 175.332,8.151 203.614,6.852 42.79,-1.964 70.578,-14.609 70.578,-14.609 v -8.1 H 445 Z"
+       transform="translate(-436,-152.92)"
+       id="path2065"
+       inkscape:connector-curvature="0"
+       style="fill:#facd79" />
+  </g>
+</svg>
