@@ -12,7 +12,7 @@
    viewBox="0 0 375.14625 56.923001"
    version="1.1"
    id="svg2069"
-   sodipodi:docname="Path 7.svg"
+   sodipodi:docname="banner-bottom.svg"
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)">
   <metadata
      id="metadata2073">
@@ -22,7 +22,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -96,7 +96,7 @@
      id="g2067"
      clip-path="url(#clipPath2077)"
      style="filter:url(#a)"
-     transform="translate(-9,-5.0019999)">
+     transform="matrix(1.0088626,0,0,1,-10.742221,-5.0019999)">
     <path
        d="m 445,201.845 c 15.17,-2.95 43.154,-24.236 100.979,-28.066 71.3,-4.722 175.332,8.151 203.614,6.852 42.79,-1.964 70.578,-14.609 70.578,-14.609 v -8.1 H 445 Z"
        transform="translate(-436,-152.92)"
