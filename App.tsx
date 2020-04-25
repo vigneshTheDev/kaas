@@ -1,13 +1,28 @@
-import React from "react";
+import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Banner from "./src/components/Banner";
 import TransactionDragNDrop from "./src/components/TransactionDragNDrop";
 
 export default function App() {
+  const [incomeSources] = useState(["Salary", "Interest", "Rent", "Dividend"]);
+  const [accounts] = useState(["Salary A/C", "Savings", "FD"]);
+  const [expenseCategories] = useState([
+    "Tuition Fees",
+    "Groceries",
+    "Water",
+    "Cable TV",
+    "Streaming Fee",
+    "Fuel",
+    "Eat out",
+    "Gadgets",
+    "Books",
+    "Grooming",
+  ]);
+
   return (
     <View style={styles.container}>
       <Banner balance={100000} />
-      <TransactionDragNDrop />
+      <TransactionDragNDrop incomeSources={incomeSources} expenseCategories={expenseCategories} accounts={accounts} />
     </View>
   );
 }

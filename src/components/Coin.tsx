@@ -7,7 +7,8 @@ interface Props {
   size: number;
   color: string;
   label: string;
-  isDraggable: boolean;
+  isDraggable?: boolean;
+  isTargeted?: boolean;
   onFingerMove: Function;
   onLayout: Function;
 }
@@ -23,12 +24,14 @@ export default class Coin extends React.PureComponent<Props, State> {
     color: PT.string.isRequired,
     label: PT.string.isRequired,
     isDraggable: PT.bool,
+    isTargeted: PT.bool,
     onFingerMove: PT.func,
     onLayout: PT.func,
   };
 
   static defaultProps = {
     isDraggable: false,
+    isTargeted: false,
     onFingerMove: () => {},
     onLayout: () => {},
   };
@@ -101,7 +104,7 @@ export default class Coin extends React.PureComponent<Props, State> {
 
   render() {
     const { inDrag } = this.state;
-    const { size, color, label, onLayout } = this.props;
+    const { size, color, label, onLayout, isTargeted } = this.props;
 
     const halfSize = size / 2;
     return (
@@ -112,7 +115,7 @@ export default class Coin extends React.PureComponent<Props, State> {
               width: size,
               height: size,
               borderRadius: halfSize,
-              backgroundColor: inDrag ? "gray" : color,
+              backgroundColor: (inDrag || isTargeted) ? "gray" : color,
             },
             styles.coin,
           ]}
