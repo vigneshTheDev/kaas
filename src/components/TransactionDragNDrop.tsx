@@ -14,12 +14,12 @@ interface Props {
 
 export default function TransactionDragNDrop({ incomeSources, accounts, expenseCategories }: Props) {
   const [containerLayout, setContainerLayout] = useState<LayoutRectangle>();
-  const [useableArea, setUseableArea] = useState<Size>();
   const [coinLayouts, setCoinLayouts] = useState<Dictionary<LayoutRectangle>>();
+
   const [numTargetCoins, setNumTargetCoins] = useState(0);
   const [numCoinsLaidOut, setNumCoinsLaidOut] = useState(0);
   const [layoutTree, setLayoutTree] = useState<LayoutTree>();
-  const [dropTarget, setDropTarget] = useState<string>()
+  const [dropTarget, setDropTarget] = useState<string>();
 
   const [pagedIncomeSources, setPagedIncomeSources] = useState<string[][]>();
   const [pagedAccounts, setPagedAccounts] = useState<string[][]>();
@@ -29,7 +29,7 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
 
   useEffect(() => {
     setNumTargetCoins(accounts.length + expenseCategories.length);
-  }, [incomeSources.length, accounts.length, expenseCategories.length]);
+  }, [accounts.length, expenseCategories.length]);
 
   useEffect(() => {
     setPagedIncomeSources(chunk(incomeSources, 4));
@@ -37,32 +37,20 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
     setPagedExpenses(chunk(chunk(expenseCategories, 4), 2));
   }, [incomeSources, accounts, expenseCategories]);
 
-  const calcUseableArea = useCallback((layout: LayoutRectangle) => {
-    if (layout) {
-      const windowSize = getWindowSize();
-
-      const area = getDraggableArea(layout, windowSize);
-      setUseableArea(area);
+  useEffect(() => {
+    if (numTargetCoins && numTargetCoins === numCoinsLaidOut) {
+      const layout = buildLayoutTree(coinLayouts as Dictionary<LayoutRectangle>);
+      setLayoutTree(layout);
     }
-  }, []);
+  }, [numTargetCoins, numCoinsLaidOut, coinLayouts]);
 
-  const onLayoutChange = useCallback((evt: LayoutChangeEvent) => {
-    if (containerLayout) {
-      return;
-    }
-
-    setContainerLayout({
-      ...evt.nativeEvent.layout,
-    });
-  }, []);
-
-  const onFingerMove = useCallback(
-    (event: GestureResponderEvent) => {
-      const {pageX: x, pageY: y} = event.nativeEvent;
-      const coinOver = detectDropTarget({x, y: y - (containerLayout?.y || 0)}, layoutTree as LayoutTree, 64);
-      coinOver && setDropTarget(coinOver[0])
+  const onContainerLayout = useCallback(
+    (evt: LayoutChangeEvent) => {
+      setContainerLayout({
+        ...evt.nativeEvent.layout,
+      });
     },
-    [containerLayout, layoutTree, dropTarget]
+    [containerLayout]
   );
 
   const onCoinLayout = useCallback(
@@ -86,54 +74,75 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
     [containerRef.current]
   );
 
-  useEffect(() => {
-    console.log(`${numCoinsLaidOut}/${numTargetCoins}`);
-    if (numTargetCoins && numTargetCoins === numCoinsLaidOut) {
-      const layout = buildLayoutTree(coinLayouts as Dictionary<LayoutRectangle>);
-      setLayoutTree(layout);
-    }
-  }, [numTargetCoins, numCoinsLaidOut, coinLayouts]);
+  const onFingerMove = useCallback(
+    (event: GestureResponderEvent | null) => {
+      if (!event) {
+        setDropTarget(undefined);
+        return;
+      }
 
-  useEffect(() => {
-    containerLayout && calcUseableArea(containerLayout);
-  }, [containerLayout?.x, containerLayout?.y]);
+      const { pageX: x, pageY: y } = event.nativeEvent;
+      const coinOver = detectDropTarget({ x, y: y - (containerLayout?.y || 0) }, layoutTree as LayoutTree, 64);
+      coinOver ? setDropTarget(coinOver[0]) : setDropTarget(undefined);
+    },
+    [containerLayout, layoutTree, dropTarget]
+  );
 
-  console.log(coinLayouts);
+  const onDrop = useCallback((id) => {
+    const dropIn = dropTarget;
+    setDropTarget(undefined);
+    console.log('from', id, 'to', dropIn)
+  }, [dropTarget]);
 
   return (
-    <View style={styles.container} onLayout={onLayoutChange} ref={containerRef}>
-      {useableArea && (
-        <React.Fragment>
-          <Text style={styles.sectionTitle}>Income Sources</Text>
-          <View style={styles.singlRow}>
-            {incomeSources.map((s, i) => (
-              <Coin key={i} size={65} color="#3FA173" label={s} isDraggable onFingerMove={onFingerMove} isTargeted={dropTarget === s}/>
-            ))}
-          </View>
+    <View style={styles.container} onLayout={onContainerLayout} ref={containerRef}>
+      <React.Fragment>
+        <Text style={styles.sectionTitle}>Income Sources</Text>
+        <View style={styles.singlRow}>
+          {incomeSources.map((s, i) => (
+            <Coin key={i} size={65} color="#3FA173" label={s} isDraggable onFingerMove={onFingerMove} isTargeted={dropTarget === s} onDrop={onDrop} />
+          ))}
+        </View>
 
-          <Text style={styles.sectionTitle}>Accounts</Text>
-          <View style={styles.singlRow}>
-            {accounts.map((a, i) => (
-              <Coin key={i} size={65} color="#F8C650" label={a} isDraggable onFingerMove={onFingerMove} onLayout={onCoinLayout} isTargeted={dropTarget === a}/>
-            ))}
-          </View>
+        <Text style={styles.sectionTitle}>Accounts</Text>
+        <View style={styles.singlRow}>
+          {accounts.map((a, i) => (
+            <Coin
+              key={i}
+              size={65}
+              color="#F8C650"
+              label={a}
+              isDraggable
+              onFingerMove={onFingerMove}
+              onLayout={onCoinLayout}
+              onDrop={onDrop}
+              isTargeted={dropTarget === a}
+            />
+          ))}
+        </View>
 
-          <Text style={styles.sectionTitle}>Expenses</Text>
-          <View style={styles.pages}>
-            {pagedExpenses?.map((rows, i) => (
-              <View style={styles.page}>
-                {rows.map((row, j) => (
-                  <View style={styles.singlRow}>
-                    {row.map((coin, k) => (
-                      <Coin key={`page-${i}-row-${j}-col-${k}`} size={65} color="#FFAF60" label={coin} onLayout={onCoinLayout} isTargeted={dropTarget === coin}/>
-                    ))}
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
-        </React.Fragment>
-      )}
+        <Text style={styles.sectionTitle}>Expenses</Text>
+        <View style={styles.pages}>
+          {pagedExpenses?.map((rows, i) => (
+            <View style={styles.page} key={`page-${i}`}>
+              {rows.map((row, j) => (
+                <View style={styles.singlRow} key={`page-${i}-row-${j}`}>
+                  {row.map((coin, k) => (
+                    <Coin
+                      key={`page-${i}-row-${j}-col-${k}`}
+                      size={65}
+                      color="#FFAF60"
+                      label={coin}
+                      onLayout={onCoinLayout}
+                      isTargeted={dropTarget === coin}
+                    />
+                  ))}
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      </React.Fragment>
     </View>
   );
 }

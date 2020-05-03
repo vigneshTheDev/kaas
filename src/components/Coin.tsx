@@ -10,6 +10,7 @@ interface Props {
   isDraggable?: boolean;
   isTargeted?: boolean;
   onFingerMove: Function;
+  onDrop: (arg0: string) => void;
   onLayout: Function;
 }
 
@@ -26,6 +27,7 @@ export default class Coin extends React.PureComponent<Props, State> {
     isDraggable: PT.bool,
     isTargeted: PT.bool,
     onFingerMove: PT.func,
+    onDrop: PT.func,
     onLayout: PT.func,
   };
 
@@ -33,6 +35,7 @@ export default class Coin extends React.PureComponent<Props, State> {
     isDraggable: false,
     isTargeted: false,
     onFingerMove: () => {},
+    onDrop: () => {},
     onLayout: () => {},
   };
 
@@ -82,6 +85,7 @@ export default class Coin extends React.PureComponent<Props, State> {
 
     Animated.event([{ x: this.pos.x, y: this.pos.y }])({ x: 0, y: 0 });
     await this.playSound(this.popInSound);
+    this.props.onDrop(this.props.label);
   };
 
   onResponderMove = (evt: GestureResponderEvent) => {
