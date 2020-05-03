@@ -13,7 +13,6 @@ interface Props {
 }
 
 export default function TransactionDragNDrop({ incomeSources, accounts, expenseCategories }: Props) {
-  const [containerLayout, setContainerLayout] = useState<LayoutRectangle>();
   const [coinLayouts, setCoinLayouts] = useState<Dictionary<LayoutRectangle>>();
 
   const [numTargetCoins, setNumTargetCoins] = useState(0);
@@ -44,25 +43,13 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
     }
   }, [numTargetCoins, numCoinsLaidOut, coinLayouts]);
 
-  const onContainerLayout = useCallback(
-    (evt: LayoutChangeEvent) => {
-      setContainerLayout({
-        ...evt.nativeEvent.layout,
-      });
-    },
-    [containerLayout]
-  );
-
   const onCoinLayout = useCallback(
     (id, event: LayoutChangeEvent) => {
       containerRef.current != null &&
-        UIManager.measureLayout(
+        UIManager.measureInWindow(
           (event as any).target,
-          findNodeHandle(containerRef.current) as number,
-          () => {
-            console.error("Failed to measure layout of coin");
-          },
           (x, y, width, height) => {
+            console.log('Coin layout', x, y)
             setNumCoinsLaidOut((oldCount) => oldCount + 1);
             setCoinLayouts((oldCoinLayouts) => ({
               ...oldCoinLayouts,
@@ -82,10 +69,10 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
       }
 
       const { pageX: x, pageY: y } = event.nativeEvent;
-      const coinOver = detectDropTarget({ x, y: y - (containerLayout?.y || 0) }, layoutTree as LayoutTree, 64);
+      const coinOver = detectDropTarget({ x, y }, layoutTree as LayoutTree, 64);
       coinOver ? setDropTarget(coinOver[0]) : setDropTarget(undefined);
     },
-    [containerLayout, layoutTree, dropTarget]
+    [layoutTree, dropTarget]
   );
 
   const onDrop = useCallback((id) => {
@@ -95,7 +82,7 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
   }, [dropTarget]);
 
   return (
-    <View style={styles.container} onLayout={onContainerLayout} ref={containerRef}>
+    <View style={styles.container} ref={containerRef}>
       <React.Fragment>
         <Text style={styles.sectionTitle}>Income Sources</Text>
         <View style={styles.singlRow}>
