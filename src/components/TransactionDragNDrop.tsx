@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, LayoutChangeEvent, GestureResponderEvent, findNodeHandle, UIManager, LayoutRectangle } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { GestureResponderEvent, LayoutChangeEvent, LayoutRectangle, StyleSheet, Text, UIManager, View } from "react-native";
 import { chunk } from "lodash";
 
 import Coin from "./Coin";
-import { getWindowSize, Size, getDraggableArea, Position, buildLayoutTree, detectDropTarget, LayoutTree } from "../utils/window";
+import { buildLayoutTree, detectDropTarget, LayoutTree } from "../utils/window";
 import { Dictionary } from "../utils/types";
+import HScrollableGrid from "./HScrollableGrid";
 
 interface Props {
   incomeSources: string[];
@@ -13,6 +14,11 @@ interface Props {
 }
 
 export default function TransactionDragNDrop({ incomeSources, accounts, expenseCategories }: Props) {
+  const layoutConfig = {
+    incomeSources: 4,
+    accounts: 4,
+    expenses: [2, 4],
+  };
   const [coinLayouts, setCoinLayouts] = useState<Dictionary<LayoutRectangle>>();
 
   const [numTargetCoins, setNumTargetCoins] = useState(0);
@@ -23,8 +29,6 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
   const [pagedIncomeSources, setPagedIncomeSources] = useState<string[][]>();
   const [pagedAccounts, setPagedAccounts] = useState<string[][]>();
   const [pagedExpenses, setPagedExpenses] = useState<string[][][]>();
-
-  const containerRef = useRef<View>(null);
 
   useEffect(() => {
     setNumTargetCoins(accounts.length + expenseCategories.length);
@@ -37,29 +41,29 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
   }, [incomeSources, accounts, expenseCategories]);
 
   useEffect(() => {
-    if (numTargetCoins && numTargetCoins === numCoinsLaidOut) {
+    const maxTargetCoins = layoutConfig.accounts + layoutConfig.expenses[0] * layoutConfig.expenses[1];
+    const numRequiredCoins = Math.min(numTargetCoins, maxTargetCoins);
+    if (numRequiredCoins && numRequiredCoins === numCoinsLaidOut) {
       const layout = buildLayoutTree(coinLayouts as Dictionary<LayoutRectangle>);
       setLayoutTree(layout);
     }
-  }, [numTargetCoins, numCoinsLaidOut, coinLayouts]);
+  }, [numTargetCoins, numCoinsLaidOut, coinLayouts, layoutConfig.accounts, layoutConfig.expenses[0], layoutConfig.expenses[1]]);
 
-  const onCoinLayout = useCallback(
-    (id, event: LayoutChangeEvent) => {
-      containerRef.current != null &&
-        UIManager.measureInWindow(
-          (event as any).target,
-          (x, y, width, height) => {
-            console.log('Coin layout', x, y)
-            setNumCoinsLaidOut((oldCount) => oldCount + 1);
-            setCoinLayouts((oldCoinLayouts) => ({
-              ...oldCoinLayouts,
-              [id]: { x, y, width, height },
-            }));
-          }
-        );
-    },
-    [containerRef.current]
-  );
+  const onCoinLayout = useCallback((id, event: LayoutChangeEvent, ref: View) => {
+    console.log(ref, id);
+    ref.measure((x, y, width, height, pageX, pageY) => {
+      console.log("direct", id, pageX, pageY);
+      setNumCoinsLaidOut((oldCount) => oldCount + 1);
+      setCoinLayouts((oldCoinLayouts) => ({
+        ...oldCoinLayouts,
+        [id]: { x: pageX, y: pageY, width, height },
+      }));
+    });
+
+    UIManager.measureInWindow((event as any).target, (x, y, width, height) => {
+      console.log("Coin layout", id, x, y, width, height);
+    });
+  }, []);
 
   const onFingerMove = useCallback(
     (event: GestureResponderEvent | null) => {
@@ -69,30 +73,43 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
       }
 
       const { pageX: x, pageY: y } = event.nativeEvent;
+      console.log("finger pos", x, y);
       const coinOver = detectDropTarget({ x, y }, layoutTree as LayoutTree, 64);
       coinOver ? setDropTarget(coinOver[0]) : setDropTarget(undefined);
     },
     [layoutTree, dropTarget]
   );
 
-  const onDrop = useCallback((id) => {
-    const dropIn = dropTarget;
-    setDropTarget(undefined);
-    console.log('from', id, 'to', dropIn)
-  }, [dropTarget]);
+  const onDrop = useCallback(
+    (id) => {
+      const dropIn = dropTarget;
+      setDropTarget(undefined);
+      console.log("from", id, "to", dropIn);
+    },
+    [dropTarget]
+  );
 
   return (
-    <View style={styles.container} ref={containerRef}>
+    <View style={styles.container}>
       <React.Fragment>
         <Text style={styles.sectionTitle}>Income Sources</Text>
-        <View style={styles.singlRow}>
+        <HScrollableGrid numColumns={layoutConfig.incomeSources} numRows={1}>
           {incomeSources.map((s, i) => (
-            <Coin key={i} size={65} color="#3FA173" label={s} isDraggable onFingerMove={onFingerMove} isTargeted={dropTarget === s} onDrop={onDrop} />
+            <Coin
+              key={i}
+              size={65}
+              color="#3FA173"
+              label={s}
+              isDraggable
+              onFingerMove={onFingerMove}
+              isTargeted={dropTarget === s}
+              onDrop={onDrop}
+            />
           ))}
-        </View>
+        </HScrollableGrid>
 
         <Text style={styles.sectionTitle}>Accounts</Text>
-        <View style={styles.singlRow}>
+        <HScrollableGrid numRows={1} numColumns={layoutConfig.accounts}>
           {accounts.map((a, i) => (
             <Coin
               key={i}
@@ -106,29 +123,14 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
               isTargeted={dropTarget === a}
             />
           ))}
-        </View>
+        </HScrollableGrid>
 
         <Text style={styles.sectionTitle}>Expenses</Text>
-        <View style={styles.pages}>
-          {pagedExpenses?.map((rows, i) => (
-            <View style={styles.page} key={`page-${i}`}>
-              {rows.map((row, j) => (
-                <View style={styles.singlRow} key={`page-${i}-row-${j}`}>
-                  {row.map((coin, k) => (
-                    <Coin
-                      key={`page-${i}-row-${j}-col-${k}`}
-                      size={65}
-                      color="#FFAF60"
-                      label={coin}
-                      onLayout={onCoinLayout}
-                      isTargeted={dropTarget === coin}
-                    />
-                  ))}
-                </View>
-              ))}
-            </View>
+        <HScrollableGrid numRows={layoutConfig.expenses[0]} numColumns={layoutConfig.expenses[1]}>
+          {expenseCategories.map((coin, k) => (
+            <Coin key={k} size={65} color="#ffaf60" label={coin} onLayout={onCoinLayout} isTargeted={dropTarget === coin} />
           ))}
-        </View>
+        </HScrollableGrid>
       </React.Fragment>
     </View>
   );
@@ -138,7 +140,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 8,
   },
-  singlRow: {
+  singleRow: {
     flexShrink: 0,
     flexDirection: "row",
     width: "100%",

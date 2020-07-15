@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 2,
     fontSize: 24,
-    color: "#549788",
+    color: "#555",
     fontFamily: "Roboto",
   },
 });

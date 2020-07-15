@@ -49,6 +49,8 @@ export default class Coin extends React.PureComponent<Props, State> {
   popOutSound = new Audio.Sound();
   popInSound = new Audio.Sound();
 
+  coinRef: View | null = null;
+
   constructor(props: Props) {
     super(props);
   }
@@ -58,13 +60,9 @@ export default class Coin extends React.PureComponent<Props, State> {
   }
 
   loadSounds() {
-    this.popOutSound
-      .loadAsync(require("../../assets/sounds/Tab2.m4a"))
-      .catch((err) => console.error("Error loading pop out sound", err));
+    this.popOutSound.loadAsync(require("../../assets/sounds/Tab2.m4a")).catch((err) => console.error("Error loading pop out sound", err));
 
-    this.popInSound
-      .loadAsync(require("../../assets/sounds/Tab1.m4a"))
-      .catch((err) => console.error("Error loading pop in sound", err));
+    this.popInSound.loadAsync(require("../../assets/sounds/Tab1.m4a")).catch((err) => console.error("Error loading pop in sound", err));
   }
 
   async playSound(sound: Audio.Sound) {
@@ -101,14 +99,14 @@ export default class Coin extends React.PureComponent<Props, State> {
   };
 
   onLayout = (evt: LayoutChangeEvent) => {
-    this.props.onLayout(this.props.label, evt);
+    this.props.onLayout(this.props.label, evt, this.coinRef);
   };
 
-  isDraggable = () => this.props.isDraggable;
+  isDraggable = () => !!this.props.isDraggable;
 
   render() {
     const { inDrag } = this.state;
-    const { size, color, label, onLayout, isTargeted } = this.props;
+    const { size, color, label, isTargeted } = this.props;
 
     const halfSize = size / 2;
     return (
@@ -119,7 +117,7 @@ export default class Coin extends React.PureComponent<Props, State> {
               width: size,
               height: size,
               borderRadius: halfSize,
-              backgroundColor: (inDrag || isTargeted) ? "gray" : color,
+              backgroundColor: inDrag || isTargeted ? "gray" : color,
             },
             styles.coin,
           ]}
@@ -129,6 +127,7 @@ export default class Coin extends React.PureComponent<Props, State> {
           onResponderTerminate={this.onResponderRelease}
           onStartShouldSetResponder={this.isDraggable}
           onLayout={this.onLayout}
+          ref={(coinRef) => (this.coinRef = coinRef)}
         />
         <Text style={[styles.label, { width: size }]} numberOfLines={1}>
           {label}
