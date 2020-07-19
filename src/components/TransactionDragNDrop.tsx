@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { GestureResponderEvent, LayoutChangeEvent, LayoutRectangle, StyleSheet, Text, UIManager, View } from "react-native";
+import {
+  GestureResponderEvent,
+  LayoutChangeEvent,
+  LayoutRectangle,
+  ScrollView,
+  StyleSheet,
+  Text,
+  UIManager,
+  View
+} from "react-native";
 import { chunk } from "lodash";
 
 import Coin from "./Coin";
@@ -26,19 +35,9 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
   const [layoutTree, setLayoutTree] = useState<LayoutTree>();
   const [dropTarget, setDropTarget] = useState<string>();
 
-  const [pagedIncomeSources, setPagedIncomeSources] = useState<string[][]>();
-  const [pagedAccounts, setPagedAccounts] = useState<string[][]>();
-  const [pagedExpenses, setPagedExpenses] = useState<string[][][]>();
-
   useEffect(() => {
     setNumTargetCoins(accounts.length + expenseCategories.length);
   }, [accounts.length, expenseCategories.length]);
-
-  useEffect(() => {
-    setPagedIncomeSources(chunk(incomeSources, 4));
-    setPagedAccounts(chunk(accounts, 4));
-    setPagedExpenses(chunk(chunk(expenseCategories, 4), 2));
-  }, [incomeSources, accounts, expenseCategories]);
 
   useEffect(() => {
     const maxTargetCoins = layoutConfig.accounts + layoutConfig.expenses[0] * layoutConfig.expenses[1];
