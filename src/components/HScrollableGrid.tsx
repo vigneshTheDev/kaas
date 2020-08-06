@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, StyleSheet, GestureResponderEvent, Animated } from "react-native";
-import { chunk } from "lodash";
+import { chunk, noop, throttle } from "lodash";
 
 interface Props {
   numRows: number;
   numColumns: number;
   children: any[];
+  onScroll: () => void;
 }
 
-export default function HScrollableGrid({ numRows, numColumns, children }: Props) {
+export default function HScrollableGrid({ numRows, numColumns, children, onScroll = noop }: Props) {
   const [pagedChildren, setPaginatedChildren] = useState<any[][]>([]);
   const [left, setLeft] = useState<Animated.Value>();
 
@@ -29,17 +30,18 @@ export default function HScrollableGrid({ numRows, numColumns, children }: Props
     setPaginatedChildren(paginated);
   }, [numRows, numColumns, children]);
 
-  const scrollToPage = (pageNumber: number) => {
-    console.log("Scrolling to page", pageNumber);
-    left?.setValue(-pageNumber * containerWidth);
-  };
+  const scrollToPage = useCallback(
+    (pageNumber: number) => {
+      setCurrentPage(pageNumber);
+      left?.setValue(-pageNumber * containerWidth);
+    },
+    [containerWidth, currentPage]
+  );
 
   // if the last page is emptied, scroll back to previous page
   useEffect(() => {
     const numPages = pagedChildren.length;
     if (numPages && numPages <= currentPage) {
-      console.log("Setting currentpage", numPages);
-      setCurrentPage(numPages - 1);
       scrollToPage(numPages - 1);
     }
   }, [pagedChildren.length, currentPage]);
@@ -57,13 +59,9 @@ export default function HScrollableGrid({ numRows, numColumns, children }: Props
     const x = event.nativeEvent.pageX;
     if (x - swipeStartX > 0.3 * containerWidth) {
       const newPage = currentPage > 0 ? currentPage - 1 : 0;
-      setCurrentPage(newPage);
       scrollToPage(newPage);
-      console.log("newpage", newPage);
     } else if (x - swipeStartX < -0.3 * containerWidth) {
       const newPage = currentPage < pagedChildren.length - 1 ? currentPage + 1 : currentPage;
-      console.log("newpage", newPage);
-      setCurrentPage(newPage);
       scrollToPage(newPage);
     } else {
       scrollToPage(currentPage);
@@ -103,6 +101,7 @@ export default function HScrollableGrid({ numRows, numColumns, children }: Props
             marginRight: i < currentPage ? 16 : 0,
             marginLeft: i < currentPage ? -16 : i > currentPage ? 16 : 0,
           }}
+          onLayout={throttle(() => onScroll(), 400)}
         >
           {page.map(renderRow)}
         </Animated.View>
