@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   },
   ghost: {
     position: "absolute",
-    elevation: 5,
-    zIndex: 4,
+    elevation: 50,
+    zIndex: 40,
   },
 });

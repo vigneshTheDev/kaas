@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, StyleSheet, GestureResponderEvent } from "react-native";
+import { View, StyleSheet, GestureResponderEvent, Animated } from "react-native";
 import { chunk } from "lodash";
 
 interface Props {
@@ -9,39 +9,40 @@ interface Props {
 }
 
 export default function HScrollableGrid({ numRows, numColumns, children }: Props) {
-  const [pageStart, setPageStart] = useState(0);
-  const [currentPage, setCurrentPage] = useState<any[][]>([]);
-  const [nextPage, setNextPage] = useState<any[][]>([]);
-  const [prevPage, setPrevPage] = useState<any[][]>([]);
+  const [pagedChildren, setPaginatedChildren] = useState<any[][]>([]);
+  const [left, setLeft] = useState<Animated.Value>();
+
+  const [currentPage, setCurrentPage] = useState(0);
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<View>(null);
 
   const [swipeStartX, setSwipeStartX] = useState(0);
-  const [leftPos, setLeftPos] = useState(0);
 
-  const updatePage = useCallback(() => {
-    const numChildrenPerPage = numRows * numColumns;
-
-    const childrenInPage = children.slice(pageStart, pageStart + numChildrenPerPage);
-    setCurrentPage(chunk(childrenInPage, numColumns));
-
-    const childrenInPrevPage = pageStart > 0 ? children.slice(pageStart - numChildrenPerPage, pageStart) : null;
-    setPrevPage(chunk(childrenInPrevPage, numColumns));
-
-    const childrenInNextPage =
-      pageStart + numChildrenPerPage < children.length
-        ? children.slice(pageStart + numChildrenPerPage, pageStart + 2 * numChildrenPerPage)
-        : null;
-    setNextPage(chunk(childrenInNextPage, numColumns));
-
-    setLeftPos(0);
-
-    console.log("pages: ", childrenInPrevPage?.length, childrenInPage.length, childrenInNextPage?.length);
-  }, [children, pageStart, numRows, numColumns]);
-
+  // Initialize Left Position
   useEffect(() => {
-    updatePage();
-  }, [numRows, numColumns, children, pageStart]);
+    setLeft(new Animated.Value(0));
+  }, []);
+
+  // Initialize paginated Child elements
+  useEffect(() => {
+    const paginated = chunk(chunk(children, numColumns), numRows);
+    setPaginatedChildren(paginated);
+  }, [numRows, numColumns, children]);
+
+  const scrollToPage = (pageNumber: number) => {
+    console.log("Scrolling to page", pageNumber);
+    left?.setValue(-pageNumber * containerWidth);
+  };
+
+  // if the last page is emptied, scroll back to previous page
+  useEffect(() => {
+    const numPages = pagedChildren.length;
+    if (numPages && numPages <= currentPage) {
+      console.log("Setting currentpage", numPages);
+      setCurrentPage(numPages - 1);
+      scrollToPage(numPages - 1);
+    }
+  }, [pagedChildren.length, currentPage]);
 
   const onResponderGrant = (event: GestureResponderEvent) => {
     setSwipeStartX(event.nativeEvent.pageX);
@@ -49,25 +50,33 @@ export default function HScrollableGrid({ numRows, numColumns, children }: Props
 
   const onResponderMove = (event: GestureResponderEvent) => {
     const x = event.nativeEvent.pageX;
-    setLeftPos(x - swipeStartX);
+    left?.setValue(x - swipeStartX - currentPage * containerWidth);
   };
 
   const onResponderRelease = (event: GestureResponderEvent) => {
-    const numChildrenPerPage = numColumns * numRows;
-    if (leftPos < -containerWidth * 0.35 && nextPage.length) {
-      setPageStart(pageStart + numChildrenPerPage);
-      setLeftPos(-containerWidth - 40);
-    } else if (leftPos > containerWidth * 0.35 && prevPage.length) {
-      setPageStart(pageStart - numChildrenPerPage);
-      setLeftPos(containerWidth + 40);
+    const x = event.nativeEvent.pageX;
+    if (x - swipeStartX > 0.3 * containerWidth) {
+      const newPage = currentPage > 0 ? currentPage - 1 : 0;
+      setCurrentPage(newPage);
+      scrollToPage(newPage);
+      console.log("newpage", newPage);
+    } else if (x - swipeStartX < -0.3 * containerWidth) {
+      const newPage = currentPage < pagedChildren.length - 1 ? currentPage + 1 : currentPage;
+      console.log("newpage", newPage);
+      setCurrentPage(newPage);
+      scrollToPage(newPage);
     } else {
-      setLeftPos(0);
+      scrollToPage(currentPage);
     }
   };
 
   const renderRow = (row: any[], index: number) => (
-    <View key={index} style={[styles.row, { justifyContent: row.length === numColumns ? "space-between" : "flex-start" }]}>
-      {row.map((col: any[]) => col)}
+    <View key={index} style={[styles.row]}>
+      {row.map((col: any[], i, arr) => (
+        <View style={{ width: "" + 100 / arr.length + "%", alignContent: "center" }} key={i}>
+          {col}
+        </View>
+      ))}
     </View>
   );
 
@@ -77,7 +86,7 @@ export default function HScrollableGrid({ numRows, numColumns, children }: Props
       onStartShouldSetResponder={() => true}
       onResponderMove={onResponderMove}
       onResponderRelease={onResponderRelease}
-      style={{ backgroundColor: "#fff" }}
+      style={{ flexDirection: "row", display: "flex", flexWrap: "nowrap" }}
       ref={containerRef}
       onLayout={(evt) => {
         containerRef.current?.measure((x, y, width, height) => {
@@ -85,9 +94,19 @@ export default function HScrollableGrid({ numRows, numColumns, children }: Props
         });
       }}
     >
-      <View style={{ position: "absolute", left: leftPos - containerWidth - 40 }}>{prevPage.map(renderRow)}</View>
-      <View style={{ left: leftPos }}>{currentPage.map(renderRow)}</View>
-      <View style={{ position: "absolute", left: leftPos + containerWidth + 40 }}>{nextPage.map(renderRow)}</View>
+      {pagedChildren.map((page, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            left: left,
+            width: "100%",
+            marginRight: i < currentPage ? 16 : 0,
+            marginLeft: i < currentPage ? -16 : i > currentPage ? 16 : 0,
+          }}
+        >
+          {page.map(renderRow)}
+        </Animated.View>
+      ))}
     </View>
   );
 }

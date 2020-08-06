@@ -1,14 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  GestureResponderEvent,
-  LayoutChangeEvent,
-  LayoutRectangle,
-  ScrollView,
-  StyleSheet,
-  Text,
-  UIManager,
-  View
-} from "react-native";
+import { GestureResponderEvent, LayoutChangeEvent, LayoutRectangle, ScrollView, StyleSheet, Text, UIManager, View } from "react-native";
 import { chunk } from "lodash";
 
 import Coin from "./Coin";
