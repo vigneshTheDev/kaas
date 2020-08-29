@@ -9,7 +9,7 @@ interface Props {
   label: string;
   isDraggable?: boolean;
   isTargeted?: boolean;
-  onFingerMove: Function;
+  onFingerMove: (evt: GestureResponderEvent, label: string) => void;
   onDrop: (arg0: string) => void;
   onLayout: Function;
 }
@@ -88,14 +88,14 @@ export default class Coin extends React.PureComponent<Props, State> {
 
   onResponderMove = (evt: GestureResponderEvent) => {
     const { startPos } = this.state;
-    const { onFingerMove } = this.props;
+    const { onFingerMove, label } = this.props;
 
     Animated.event([{ x: this.pos.x, y: this.pos.y }])({
       x: evt.nativeEvent.pageX - startPos.x,
       y: evt.nativeEvent.pageY - startPos.y,
     });
 
-    onFingerMove(evt);
+    onFingerMove(evt, label);
   };
 
   onLayout = (evt: LayoutChangeEvent) => {
@@ -159,8 +159,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   coinContainer: {
-    textAlign: "center",
-    justifyContent: "center",
+    alignItems: "center",
   },
   coin: {
     shadowColor: "#000",

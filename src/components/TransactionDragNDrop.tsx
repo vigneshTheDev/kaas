@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { GestureResponderEvent, LayoutChangeEvent, LayoutRectangle, StyleSheet, Text, View } from "react-native";
+import { NavigationProp } from "@react-navigation/native";
 
 import Coin from "./Coin";
 import { buildLayoutTree, detectDropTarget, LayoutTree } from "../utils/window";
@@ -10,9 +11,10 @@ interface Props {
   incomeSources: string[];
   accounts: string[];
   expenseCategories: string[];
+  navigation: NavigationProp<any>;
 }
 
-export default function TransactionDragNDrop({ incomeSources, accounts, expenseCategories }: Props) {
+export default function TransactionDragNDrop({ incomeSources, accounts, expenseCategories, navigation }: Props) {
   const layoutConfig = {
     incomeSources: 4,
     accounts: 4,
@@ -24,6 +26,7 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
   const [numCoinsLaidOut, setNumCoinsLaidOut] = useState(0);
   const [layoutTree, setLayoutTree] = useState<LayoutTree>();
   const [dropTarget, setDropTarget] = useState<string>();
+  const [draggingCategory, setDraggingCategory] = useState<string>();
 
   const refreshLayoutTree = useCallback(async () => {
     // Only accounts and expenses can be drop destinations. So, we maintain the position of only those coins.
@@ -53,10 +56,16 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
   }, []);
 
   const onFingerMove = useCallback(
-    (event: GestureResponderEvent | null) => {
+    (event: GestureResponderEvent | null, coinId) => {
       if (!event) {
         setDropTarget(undefined);
         return;
+      }
+
+      if (incomeSources.includes(coinId)) {
+        setDraggingCategory("income");
+      } else {
+        setDraggingCategory("account");
       }
 
       const { pageX: x, pageY: y } = event.nativeEvent;
@@ -64,14 +73,20 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
       const coinOver = detectDropTarget({ x, y }, layoutTree as LayoutTree, 64);
       coinOver ? setDropTarget(coinOver[0]) : setDropTarget(undefined);
     },
-    [layoutTree, dropTarget]
+    [layoutTree, dropTarget, draggingCategory, incomeSources]
   );
 
   const onDrop = useCallback(
     (id) => {
       const dropIn = dropTarget;
       setDropTarget(undefined);
-      console.log("from", id, "to", dropIn);
+
+      if (dropIn) {
+        navigation.navigate("AddTransaction", {
+          from: id,
+          to: dropIn,
+        });
+      }
     },
     [dropTarget]
   );
@@ -80,7 +95,12 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
     <View style={styles.container}>
       <React.Fragment>
         <Text style={styles.sectionTitle}>Income Sources</Text>
-        <HScrollableGrid numColumns={layoutConfig.incomeSources} numRows={1} onScroll={refreshLayoutTree}>
+        <HScrollableGrid
+          numColumns={layoutConfig.incomeSources}
+          numRows={1}
+          onScroll={refreshLayoutTree}
+          elevated={draggingCategory === "income"}
+        >
           {incomeSources.map((s, i) => (
             <Coin
               key={i}
@@ -96,7 +116,12 @@ export default function TransactionDragNDrop({ incomeSources, accounts, expenseC
         </HScrollableGrid>
 
         <Text style={styles.sectionTitle}>Accounts</Text>
-        <HScrollableGrid numRows={1} numColumns={layoutConfig.accounts} onScroll={refreshLayoutTree}>
+        <HScrollableGrid
+          numRows={1}
+          numColumns={layoutConfig.accounts}
+          onScroll={refreshLayoutTree}
+          elevated={draggingCategory === "account"}
+        >
           {accounts.map((a, i) => (
             <Coin
               key={i}

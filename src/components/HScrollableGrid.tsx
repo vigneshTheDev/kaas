@@ -7,9 +7,10 @@ interface Props {
   numColumns: number;
   children: any[];
   onScroll: () => void;
+  elevated?: boolean;
 }
 
-export default function HScrollableGrid({ numRows, numColumns, children, onScroll = noop }: Props) {
+export default function HScrollableGrid({ numRows, numColumns, children, onScroll = noop, elevated }: Props) {
   const [pagedChildren, setPaginatedChildren] = useState<any[][]>([]);
   const [left, setLeft] = useState<Animated.Value>();
 
@@ -71,7 +72,7 @@ export default function HScrollableGrid({ numRows, numColumns, children, onScrol
   const renderRow = (row: any[], index: number) => (
     <View key={index} style={[styles.row]}>
       {row.map((col: any[], i, arr) => (
-        <View style={{ width: "" + 100 / arr.length + "%", alignContent: "center" }} key={i}>
+        <View style={{ width: "" + 100 / numColumns + "%", flexGrow: 0 }} key={i}>
           {col}
         </View>
       ))}
@@ -84,7 +85,7 @@ export default function HScrollableGrid({ numRows, numColumns, children, onScrol
       onStartShouldSetResponder={() => true}
       onResponderMove={onResponderMove}
       onResponderRelease={onResponderRelease}
-      style={{ flexDirection: "row", display: "flex", flexWrap: "nowrap" }}
+      style={{ flexDirection: "row", display: "flex", flexWrap: "nowrap", elevation: elevated ? 1 : 0 }}
       ref={containerRef}
       onLayout={(evt) => {
         containerRef.current?.measure((x, y, width, height) => {
