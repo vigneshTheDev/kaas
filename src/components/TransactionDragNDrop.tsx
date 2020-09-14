@@ -1,151 +1,302 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { GestureResponderEvent, LayoutChangeEvent, LayoutRectangle, StyleSheet, Text, View } from "react-native";
+import React from "react";
+import { GestureResponderEvent, LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 import { NavigationProp } from "@react-navigation/native";
 
-import Coin from "./Coin";
+import Coin, { CoinType } from "./Coin";
 import { buildLayoutTree, detectDropTarget, LayoutTree } from "../utils/window";
 import { Dictionary } from "../utils/types";
 import HScrollableGrid from "./HScrollableGrid";
+import { AccountRecord, ExpenseCategoryRecord, IncomeSourceRecord } from "../utils/sqlite-model";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 
 interface Props {
-  incomeSources: string[];
-  accounts: string[];
-  expenseCategories: string[];
+  incomeSources: IncomeSourceRecord[];
+  accounts: AccountRecord[];
+  expenseCategories: ExpenseCategoryRecord[];
   navigation: NavigationProp<any>;
 }
 
-export default function TransactionDragNDrop({ incomeSources, accounts, expenseCategories, navigation }: Props) {
-  const layoutConfig = {
+interface State {
+  numTargetCoins: number;
+  numCoinsLaidOut: number;
+  accountLayoutTree: LayoutTree;
+  expenseLayoutTree: LayoutTree;
+  dropTarget: number | null;
+  dropTargetType: CoinType | null;
+  draggingCategory: CoinType | null;
+}
+
+export default class TransactionDragNDrop extends React.Component<Props, State> {
+  layoutConfig = {
     incomeSources: 4,
     accounts: 4,
     expenses: [2, 4],
   };
-  const [coinRefs, setCoinRefs] = useState<Dictionary<View>>();
+  accountCoinRefs: Dictionary<View> = {};
+  expenseCoinRefs: Dictionary<View> = {};
 
-  const [numTargetCoins, setNumTargetCoins] = useState(0);
-  const [numCoinsLaidOut, setNumCoinsLaidOut] = useState(0);
-  const [layoutTree, setLayoutTree] = useState<LayoutTree>();
-  const [dropTarget, setDropTarget] = useState<string>();
-  const [draggingCategory, setDraggingCategory] = useState<string>();
+  state: State = {
+    numTargetCoins: this.calcNumTargetCoins(),
+    numCoinsLaidOut: 0,
+    accountLayoutTree: {},
+    expenseLayoutTree: {},
+    dropTarget: null,
+    draggingCategory: null,
+    dropTargetType: null,
+  };
 
-  const refreshLayoutTree = useCallback(async () => {
-    // Only accounts and expenses can be drop destinations. So, we maintain the position of only those coins.
-    const maxTargetCoins = layoutConfig.accounts + layoutConfig.expenses[0] * layoutConfig.expenses[1];
-    const numRequiredCoins = Math.min(numTargetCoins, maxTargetCoins);
+  constructor(props: Props) {
+    super(props);
+  }
 
-    if (numRequiredCoins && numRequiredCoins <= numCoinsLaidOut && coinRefs) {
-      const layout = await buildLayoutTree(coinRefs);
-      setLayoutTree(layout);
+  componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>) {
+    if (
+      prevProps.accounts.length !== this.props.accounts.length ||
+      prevProps.expenseCategories.length !== this.props.expenseCategories.length
+    ) {
+      this.setState({
+        numTargetCoins: this.calcNumTargetCoins(),
+      });
     }
-  }, [numTargetCoins, numCoinsLaidOut, layoutConfig.accounts, layoutConfig.expenses[0], layoutConfig.expenses[1]]);
 
-  useEffect(() => {
-    setNumTargetCoins(accounts.length + expenseCategories.length);
-  }, [accounts.length, expenseCategories.length]);
+    if (
+      prevState.numTargetCoins !== this.state.numTargetCoins ||
+      prevState.numCoinsLaidOut !== this.state.numCoinsLaidOut
+    ) {
+      this.refreshLayoutTree();
+    }
+  }
 
-  useEffect(() => {
-    refreshLayoutTree();
-  }, [numTargetCoins, numCoinsLaidOut, layoutConfig.accounts, layoutConfig.expenses[0], layoutConfig.expenses[1]]);
+  calcNumTargetCoins() {
+    const { accounts, expenseCategories } = this.props;
+    return accounts.length + expenseCategories.length;
+  }
 
-  const onCoinLayout = useCallback((id, event: LayoutChangeEvent, ref: View) => {
-    setNumCoinsLaidOut((oldCount) => oldCount + 1);
-    setCoinRefs((oldCoinRefs) => ({
-      ...oldCoinRefs,
-      [id]: ref,
+  refreshLayoutTree = async () => {
+    const { numTargetCoins, numCoinsLaidOut } = this.state;
+    const { accountCoinRefs, expenseCoinRefs } = this;
+
+    // Only accounts and expenses can be drop destinations. So, we maintain the position of only those coins.
+    const numRequiredCoins = numTargetCoins;
+
+    if (numRequiredCoins && numRequiredCoins <= numCoinsLaidOut && accountCoinRefs) {
+      const accountLayoutTree = await buildLayoutTree(accountCoinRefs);
+      const expenseLayoutTree = await buildLayoutTree(expenseCoinRefs);
+      this.setState({
+        accountLayoutTree,
+        expenseLayoutTree,
+      });
+    }
+  };
+
+  onCoinLayout = (id: number, event: LayoutChangeEvent, ref: View, coinType: CoinType) => {
+    this.setState((oldState) => ({
+      numCoinsLaidOut: oldState.numCoinsLaidOut + 1,
     }));
-  }, []);
 
-  const onFingerMove = useCallback(
-    (event: GestureResponderEvent | null, coinId) => {
-      if (!event) {
-        setDropTarget(undefined);
-        return;
-      }
+    if (coinType === "account") {
+      this.accountCoinRefs = {
+        ...this.accountCoinRefs,
+        [id]: ref,
+      };
+    } else {
+      this.expenseCoinRefs = {
+        ...this.expenseCoinRefs,
+        [id]: ref,
+      };
+    }
+  };
 
-      if (incomeSources.includes(coinId)) {
-        setDraggingCategory("income");
-      } else {
-        setDraggingCategory("account");
-      }
+  getCoinName(id: number, type: CoinType) {
+    const { incomeSources, accounts, expenseCategories } = this.props;
+    const coinArray: any[] =
+      type === "incomeSource" ? incomeSources : type === "account" ? accounts : expenseCategories;
 
-      const { pageX: x, pageY: y } = event.nativeEvent;
-      console.log("finger pos", x, y);
-      const coinOver = detectDropTarget({ x, y }, layoutTree as LayoutTree, 64);
-      coinOver ? setDropTarget(coinOver[0]) : setDropTarget(undefined);
-    },
-    [layoutTree, dropTarget, draggingCategory, incomeSources]
-  );
+    const coin = coinArray.find((c) => c.id === id);
 
-  const onDrop = useCallback(
-    (id) => {
-      const dropIn = dropTarget;
-      setDropTarget(undefined);
+    return coin && coin.name;
+  }
 
-      if (dropIn) {
-        navigation.navigate("AddTransaction", {
-          from: id,
-          to: dropIn,
-        });
-      }
-    },
-    [dropTarget]
-  );
+  onDrop = (sourceId: number, sourceType: CoinType) => {
+    const { navigation } = this.props;
+    const { dropTarget, dropTargetType } = this.state;
+    this.setState({
+      dropTarget: null,
+    });
 
-  return (
-    <View style={styles.container}>
-      <React.Fragment>
-        <Text style={styles.sectionTitle}>Income Sources</Text>
-        <HScrollableGrid
-          numColumns={layoutConfig.incomeSources}
-          numRows={1}
-          onScroll={refreshLayoutTree}
-          elevated={draggingCategory === "income"}
-        >
-          {incomeSources.map((s, i) => (
-            <Coin
-              key={i}
-              size={65}
-              color="#3FA173"
-              label={s}
-              isDraggable
-              onFingerMove={onFingerMove}
-              isTargeted={dropTarget === s}
-              onDrop={onDrop}
-            />
-          ))}
-        </HScrollableGrid>
+    const droppedIntoSelf = sourceId === dropTarget && sourceType === dropTargetType;
 
-        <Text style={styles.sectionTitle}>Accounts</Text>
-        <HScrollableGrid
-          numRows={1}
-          numColumns={layoutConfig.accounts}
-          onScroll={refreshLayoutTree}
-          elevated={draggingCategory === "account"}
-        >
-          {accounts.map((a, i) => (
-            <Coin
-              key={i}
-              size={65}
-              color="#F8C650"
-              label={a}
-              isDraggable
-              onFingerMove={onFingerMove}
-              onLayout={onCoinLayout}
-              onDrop={onDrop}
-              isTargeted={dropTarget === a}
-            />
-          ))}
-        </HScrollableGrid>
+    if (dropTarget != null && !droppedIntoSelf) {
+      navigation.navigate("AddTransaction", {
+        from: sourceId,
+        fromName: this.getCoinName(sourceId, sourceType),
+        fromType: sourceType,
+        to: dropTarget,
+        toName: this.getCoinName(dropTarget, dropTargetType as CoinType),
+        toType: dropTargetType,
+      });
+    }
+  };
 
-        <Text style={styles.sectionTitle}>Expenses</Text>
-        <HScrollableGrid numRows={layoutConfig.expenses[0]} numColumns={layoutConfig.expenses[1]} onScroll={refreshLayoutTree}>
-          {expenseCategories.map((coin, k) => (
-            <Coin key={k} size={65} color="#ffaf60" label={coin} onLayout={onCoinLayout} isTargeted={dropTarget === coin} />
-          ))}
-        </HScrollableGrid>
-      </React.Fragment>
-    </View>
-  );
+  onAddIncomeSource = () => {
+    this.navigate("AddIncomeSource");
+  };
+
+  onAddAccount = () => {
+    this.navigate("AddAccount");
+  };
+
+  onAddExpenseCategory = () => {
+    this.navigate("AddExpenseCategory");
+  };
+
+  navigate(screen: string) {
+    const { navigation } = this.props;
+    navigation.navigate(screen);
+  }
+
+  onFingerMove = (event: GestureResponderEvent | null, coinId: number, sourceType: CoinType) => {
+    const { accountLayoutTree, expenseLayoutTree } = this.state;
+
+    if (!event) {
+      this.setState({
+        dropTarget: null,
+      });
+      return;
+    }
+
+    this.setState({ draggingCategory: sourceType });
+
+    const { pageX: x, pageY: y } = event.nativeEvent;
+
+    if (sourceType === "incomeSource") {
+      const coinOver = detectDropTarget({ x, y }, accountLayoutTree as LayoutTree, 64);
+      this.setState({
+        dropTarget: coinOver ? +coinOver[0] : null,
+        dropTargetType: "account",
+      });
+    } else {
+      const coinOver = detectDropTarget({ x, y }, expenseLayoutTree as LayoutTree, 64);
+      const accountCoinOver = !coinOver && detectDropTarget({ x, y }, accountLayoutTree, 64);
+
+      this.setState({
+        dropTarget: coinOver ? +coinOver[0] : accountCoinOver ? +accountCoinOver[0] : null,
+        dropTargetType: coinOver ? "expenseCategory" : accountCoinOver ? "account" : null,
+      });
+    }
+  };
+
+  render() {
+    const { incomeSources, accounts, expenseCategories } = this.props;
+    const { draggingCategory, dropTarget, dropTargetType } = this.state;
+    return (
+      <View style={styles.container}>
+        <React.Fragment>
+          {/* Income Sources */}
+          <Text style={styles.sectionTitle}>Income Sources</Text>
+          <HScrollableGrid
+            numColumns={this.layoutConfig.incomeSources}
+            numRows={1}
+            onScroll={this.refreshLayoutTree}
+            elevated={draggingCategory === "incomeSource"}
+          >
+            {[
+              ...incomeSources.map((s, i) => (
+                <Coin
+                  key={i}
+                  size={65}
+                  color="#5bbf90"
+                  label={s.name}
+                  id={s.id}
+                  type={"incomeSource"}
+                  isDraggable
+                  onFingerMove={this.onFingerMove}
+                  onDrop={this.onDrop}
+                />
+              )),
+              <Coin
+                key={-1}
+                size={65}
+                color="#76c9a2"
+                label="Add"
+                type={"incomeSource"}
+                icon={faPlus}
+                onClick={this.onAddIncomeSource}
+              />,
+            ]}
+          </HScrollableGrid>
+
+          {/* Accounts */}
+          <Text style={styles.sectionTitle}>Accounts</Text>
+          <HScrollableGrid
+            numRows={1}
+            numColumns={this.layoutConfig.accounts}
+            onScroll={this.refreshLayoutTree}
+            elevated={draggingCategory === "account"}
+          >
+            {[
+              ...accounts.map((a, i) => (
+                <Coin
+                  key={i}
+                  size={65}
+                  color="#f9d173"
+                  label={a.name}
+                  id={a.id}
+                  type={"account"}
+                  isDraggable
+                  onFingerMove={this.onFingerMove}
+                  onLayout={this.onCoinLayout}
+                  onDrop={this.onDrop}
+                  isTargeted={dropTarget === a.id && dropTargetType === "account"}
+                />
+              )),
+              <Coin
+                key={-1}
+                size={65}
+                color="#fad98a"
+                label="Add"
+                type={"account"}
+                onClick={this.onAddAccount}
+                icon={faPlus}
+              />,
+            ]}
+          </HScrollableGrid>
+
+          {/* Expense Categories */}
+          <Text style={styles.sectionTitle}>Expenses</Text>
+          <HScrollableGrid
+            numRows={this.layoutConfig.expenses[0]}
+            numColumns={this.layoutConfig.expenses[1]}
+            onScroll={this.refreshLayoutTree}
+          >
+            {[
+              ...expenseCategories.map((coin, k) => (
+                <Coin
+                  key={k}
+                  size={65}
+                  color="#ffba75"
+                  label={coin.name}
+                  id={coin.id}
+                  type={"expenseCategory"}
+                  onLayout={this.onCoinLayout}
+                  isTargeted={dropTarget === coin.id && dropTargetType === "expenseCategory"}
+                />
+              )),
+              <Coin
+                key={-1}
+                size={65}
+                color="#ffca95"
+                label="Add"
+                type={"expenseCategory"}
+                onClick={this.onAddExpenseCategory}
+                icon={faPlus}
+              />,
+            ]}
+          </HScrollableGrid>
+        </React.Fragment>
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({

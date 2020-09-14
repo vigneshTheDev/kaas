@@ -26,7 +26,11 @@
     },
     "android": {
       "package": "com.vickysoft.kaas",
-      "versionCode": 1
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon-adaptive.png",
+        "backgroundColor": "#dbe3db"
+      }
     },
     "packagerOpts": {
       "config": "metro.config.js",

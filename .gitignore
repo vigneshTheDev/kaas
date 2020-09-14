@@ -12,3 +12,10 @@ web-report/
 
 # macOS
 .DS_Store
+
+# DBeaver workspace
+.dbeaver
+db/drivers
+
+# IDE
+.idea

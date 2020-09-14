@@ -52,7 +52,10 @@ export function detectDropTarget(fingerPosition: Position, layoutTree: LayoutTre
   return find(
     nodes,
     ([, coinLayout]) =>
-      coinLayout.x <= x && coinLayout.y <= y && coinLayout.x + coinLayout.width >= x && coinLayout.y + coinLayout.height >= y
+      coinLayout.x <= x &&
+      coinLayout.y <= y &&
+      coinLayout.x + coinLayout.width >= x &&
+      coinLayout.y + coinLayout.height >= y
   );
 }
 

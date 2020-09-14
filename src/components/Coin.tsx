@@ -1,7 +1,19 @@
 import React from "react";
 import PT from "prop-types";
 import { Audio } from "expo-av";
-import { View, GestureResponderEvent, StyleSheet, Text, Animated, LayoutChangeEvent } from "react-native";
+import {
+  View,
+  GestureResponderEvent,
+  StyleSheet,
+  Text,
+  Animated,
+  LayoutChangeEvent,
+  TouchableWithoutFeedback,
+} from "react-native";
+import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+
+export type CoinType = "incomeSource" | "account" | "expenseCategory";
 
 interface Props {
   size: number;
@@ -9,9 +21,13 @@ interface Props {
   label: string;
   isDraggable?: boolean;
   isTargeted?: boolean;
-  onFingerMove: (evt: GestureResponderEvent, label: string) => void;
-  onDrop: (arg0: string) => void;
-  onLayout: Function;
+  onFingerMove: (evt: GestureResponderEvent, id: number, type: CoinType) => void;
+  onDrop: (id: number, type: CoinType) => void;
+  onClick: () => void;
+  onLayout: (id: number, evt: LayoutChangeEvent, coinRef: View, type: CoinType) => void;
+  type: CoinType;
+  id?: number;
+  icon?: IconDefinition;
 }
 
 interface State {
@@ -29,6 +45,10 @@ export default class Coin extends React.PureComponent<Props, State> {
     onFingerMove: PT.func,
     onDrop: PT.func,
     onLayout: PT.func,
+    onClick: PT.func,
+    id: PT.number,
+    type: PT.string.isRequired,
+    children: PT.arrayOf(PT.element),
   };
 
   static defaultProps = {
@@ -37,6 +57,7 @@ export default class Coin extends React.PureComponent<Props, State> {
     onFingerMove: () => {},
     onDrop: () => {},
     onLayout: () => {},
+    onClick: () => {},
   };
 
   state = {
@@ -60,9 +81,13 @@ export default class Coin extends React.PureComponent<Props, State> {
   }
 
   loadSounds() {
-    this.popOutSound.loadAsync(require("../../assets/sounds/Tab2.m4a")).catch((err) => console.error("Error loading pop out sound", err));
+    this.popOutSound
+      .loadAsync(require("../../assets/sounds/Tab2.m4a"))
+      .catch((err) => console.error("Error loading pop out sound", err));
 
-    this.popInSound.loadAsync(require("../../assets/sounds/Tab1.m4a")).catch((err) => console.error("Error loading pop in sound", err));
+    this.popInSound
+      .loadAsync(require("../../assets/sounds/Tab1.m4a"))
+      .catch((err) => console.error("Error loading pop in sound", err));
   }
 
   async playSound(sound: Audio.Sound) {
@@ -83,30 +108,30 @@ export default class Coin extends React.PureComponent<Props, State> {
 
     Animated.event([{ x: this.pos.x, y: this.pos.y }])({ x: 0, y: 0 });
     await this.playSound(this.popInSound);
-    this.props.onDrop(this.props.label);
+    this.props.onDrop(this.props.id as number, this.props.type);
   };
 
   onResponderMove = (evt: GestureResponderEvent) => {
     const { startPos } = this.state;
-    const { onFingerMove, label } = this.props;
+    const { onFingerMove, id, type } = this.props;
 
     Animated.event([{ x: this.pos.x, y: this.pos.y }])({
       x: evt.nativeEvent.pageX - startPos.x,
       y: evt.nativeEvent.pageY - startPos.y,
     });
 
-    onFingerMove(evt, label);
+    onFingerMove(evt, id as number, type);
   };
 
   onLayout = (evt: LayoutChangeEvent) => {
-    this.props.onLayout(this.props.label, evt, this.coinRef);
+    this.props.onLayout(this.props.id as number, evt, this.coinRef as View, this.props.type);
   };
 
   isDraggable = () => !!this.props.isDraggable;
 
   render() {
     const { inDrag } = this.state;
-    const { size, color, label, isTargeted } = this.props;
+    const { size, color, label, isTargeted, onClick, isDraggable, icon } = this.props;
 
     const halfSize = size / 2;
     return (
@@ -127,8 +152,11 @@ export default class Coin extends React.PureComponent<Props, State> {
           onResponderTerminate={this.onResponderRelease}
           onStartShouldSetResponder={this.isDraggable}
           onLayout={this.onLayout}
-          ref={(coinRef) => (this.coinRef = coinRef)}
-        />
+          ref={(coinRef: View) => (this.coinRef = coinRef)}
+          onTouchEnd={onClick}
+        >
+          {icon && <FontAwesomeIcon icon={icon} style={{ color: "#374140" }}></FontAwesomeIcon>}
+        </View>
         <Text style={[styles.label, { width: size }]} numberOfLines={1}>
           {label}
         </Text>
@@ -172,6 +200,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     elevation: 4,
     zIndex: 3,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 24,
+    color: "white",
   },
   ghost: {
     position: "absolute",
