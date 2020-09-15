@@ -6,12 +6,16 @@ import { formatBalance } from "../utils/number";
 import { IconSelector } from "../components/IconSelector";
 import { Icon } from "../models/icon-model";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import { addIncomeSource } from "../utils/sqlite-insert";
+import { NavigationProp } from "@react-navigation/native";
 
-interface Props {}
+interface Props {
+  navigation: NavigationProp<any>;
+}
 
 interface State {
   name: string;
-  expectedPerMonth: number | null;
+  expectedPerMonth: number | undefined;
   rawExpectedPerMonth: string;
   currency: Currency | null;
   currencyFilter: string;
@@ -19,13 +23,15 @@ interface State {
   icon: Icon | null;
   iconSelectEnabled: boolean;
   invalidExpectedPerMonth: boolean;
+  isFormValid: boolean;
+  errorOccurred: string;
 }
 
 export class AddIncomeSource extends React.Component<Props, State> {
   static propTypes = {};
   state: State = {
     name: "",
-    expectedPerMonth: null,
+    expectedPerMonth: undefined,
     rawExpectedPerMonth: "",
     currency: null,
     icon: null,
@@ -33,6 +39,8 @@ export class AddIncomeSource extends React.Component<Props, State> {
     currencyFilter: "",
     invalidExpectedPerMonth: false,
     currencySelectEnabled: false,
+    isFormValid: false,
+    errorOccurred: "",
   };
   constructor(props: Props) {
     super(props);
@@ -40,6 +48,7 @@ export class AddIncomeSource extends React.Component<Props, State> {
 
   onNameChange = (name: string) => {
     this.setState({ name: name });
+    this.validate();
   };
 
   onExpectedAmountChange = (amount: string) => {
@@ -49,7 +58,7 @@ export class AddIncomeSource extends React.Component<Props, State> {
     if (!Number.isNaN(parsedAmount)) {
       this.setState({ expectedPerMonth: parsedAmount, invalidExpectedPerMonth: false });
     } else {
-      this.setState({ expectedPerMonth: null, invalidExpectedPerMonth: true });
+      this.setState({ expectedPerMonth: undefined, invalidExpectedPerMonth: true });
     }
   };
 
@@ -67,6 +76,7 @@ export class AddIncomeSource extends React.Component<Props, State> {
 
   onCurrencySelect = (currency: Currency) => {
     this.setState({ currency, currencySelectEnabled: false, currencyFilter: "" });
+    this.validate();
   };
 
   toggleCurrencySelect = () => {
@@ -77,10 +87,34 @@ export class AddIncomeSource extends React.Component<Props, State> {
     this.setState({ icon });
   };
 
-  onSave = () => {};
+  onSave = () => {
+    const { name, expectedPerMonth, currency, icon } = this.state;
+    addIncomeSource({
+      name,
+      expectedPerMonth,
+      currency: currency as Currency,
+      icon: icon?.name,
+    })
+      .then(() => {
+        this.props.navigation.navigate("Home");
+      })
+      .catch((ex) => {
+        this.setState({ errorOccurred: "Error saving the income source" });
+        console.log("Error saving income source", ex);
+      });
+  };
 
   toggleIconSelect = () => {
     this.setState((prevState) => ({ iconSelectEnabled: !prevState.iconSelectEnabled }));
+  };
+
+  validate = () => {
+    this.setState((prevState) => {
+      const { name, currency } = prevState;
+      return {
+        isFormValid: !!name && !!currency,
+      };
+    });
   };
 
   render() {
@@ -94,7 +128,9 @@ export class AddIncomeSource extends React.Component<Props, State> {
       icon,
       iconSelectEnabled,
       name,
+      isFormValid,
     } = this.state;
+
     return (
       <ScrollView style={styles.container}>
         <View style={styles.fieldGroup}>
@@ -145,7 +181,7 @@ export class AddIncomeSource extends React.Component<Props, State> {
         </View>
 
         <View style={styles.saveBtnContainer}>
-          <Button title={"Save"} onPress={this.onSave} />
+          <Button title={"Save"} onPress={this.onSave} disabled={!isFormValid} />
         </View>
       </ScrollView>
     );

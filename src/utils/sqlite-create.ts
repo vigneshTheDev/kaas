@@ -73,8 +73,8 @@ function createIncomeSourceTable(tx: SQLTransaction, cb?: TransactionCallback): 
     Tables.incomeSource,
     `
       id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      name VARCHAR(16) NOT NULL,
-      expected_per_month NUMERIC,
+      name VARCHAR(16) NOT NULL UNIQUE,
+      expectedPerMonth NUMERIC,
       currency VARCHAR(5) NOT NULL,
       icon VARCHAR(10)
     `,
@@ -89,7 +89,7 @@ function createAccountTable(tx: SQLTransaction, cb?: TransactionCallback): void 
     `
       id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
       name VARCHAR(16) NOT NULL,
-      initial_balance NUMERIC NOT NULL,
+      initialBalance NUMERIC NOT NULL,
       isDebtAccount INTEGER NOT NULL,
       includeInTotal INTEGER NOT NULL,
       currency VARCHAR(5) NOT NULL,
@@ -106,7 +106,7 @@ function createExpenseCategoryTable(tx: SQLTransaction, cb?: TransactionCallback
     `
       id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
       name VARCHAR(16) NOT NULL,
-      expected_per_month NUMERIC,
+      expectedPerMonth NUMERIC,
       currency VARCHAR(5) NOT NULL,
       icon VARCHAR(10)
     `,
@@ -120,14 +120,14 @@ function createIncomeTransactionTable(tx: SQLTransaction, cb?: TransactionCallba
     Tables.incomeTransaction,
     `
       id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      from_source INTEGER NOT NULL,
-      to_account INTEGER NOT NULL,
-      transaction_date VARCHAR(10) NOT NULL,
-      recorded_time INTEGER NOT NULL,
-      source_currency VARCHAR(10) NOT NULL,
-      target_currency VARCHAR(10) NOT NULL,
-      amount_in_source_currency NUMERIC NOT NULL,
-      amount_in_target_currency NUMERIC NOT NULL,
+      fromSource INTEGER NOT NULL,
+      toAccount INTEGER NOT NULL,
+      transactionDate VARCHAR(10) NOT NULL,
+      recordedTime INTEGER NOT NULL,
+      sourceCurrency VARCHAR(10) NOT NULL,
+      targetCurrency VARCHAR(10) NOT NULL,
+      amountInSourceCurrency NUMERIC NOT NULL,
+      amountInTargetCurrency NUMERIC NOT NULL,
       description VARCHAR(100)
     `,
     cb
@@ -139,14 +139,14 @@ function createExpenseTransactionTable(tx: SQLTransaction, cb?: TransactionCallb
     Tables.expenseTransaction,
     `
       id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      from_account INTEGER NOT NULL,
-      to_expense INTEGER NOT NULL,
-      transaction_date VARCHAR(10) NOT NULL,
-      recorded_time INTEGER NOT NULL,
-      source_currency VARCHAR(10) NOT NULL,
-      target_currency VARCHAR(10) NOT NULL,
-      amount_in_source_currency NUMERIC NOT NULL,
-      amount_in_target_currency NUMERIC NOT NULL,
+      fromAccount INTEGER NOT NULL,
+      toExpense INTEGER NOT NULL,
+      transactionDate VARCHAR(10) NOT NULL,
+      recordedTime INTEGER NOT NULL,
+      sourceCurrency VARCHAR(10) NOT NULL,
+      targetCurrency VARCHAR(10) NOT NULL,
+      amountInSourceCurrency NUMERIC NOT NULL,
+      amountInTargetCurrency NUMERIC NOT NULL,
       description VARCHAR(100)
     `,
     cb
@@ -158,14 +158,14 @@ function createTransferTransactionTable(tx: SQLTransaction, cb?: TransactionCall
     Tables.transferTransaction,
     `
       id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      from_account INTEGER NOT NULL,
-      to_account INTEGER NOT NULL,
-      transaction_date VARCHAR(10) NOT NULL,
-      recorded_time INTEGER NOT NULL,
-      source_currency VARCHAR(10) NOT NULL,
-      target_currency VARCHAR(10) NOT NULL,
-      amount_in_source_currency NUMERIC NOT NULL,
-      amount_in_target_currency NUMERIC NOT NULL,
+      fromAccount INTEGER NOT NULL,
+      toAccount INTEGER NOT NULL,
+      transactionDate VARCHAR(10) NOT NULL,
+      recordedTime INTEGER NOT NULL,
+      sourceCurrency VARCHAR(10) NOT NULL,
+      targetCurrency VARCHAR(10) NOT NULL,
+      amountInSourceCurrency NUMERIC NOT NULL,
+      amountInTargetCurrency NUMERIC NOT NULL,
       description VARCHAR(100)
     `,
     cb
@@ -180,7 +180,7 @@ function createMonthlyAccountSummaryTable(tx: SQLTransaction, cb?: TransactionCa
       account INTEGER NOT NULL,
       month INTEGER NOT NULL,
       year INTEGER NOT NULL,
-      monthly_subtotal NUMERIC NOT NULL
+      monthlySubtotal NUMERIC NOT NULL
     `,
     cb
   );
@@ -193,7 +193,7 @@ function createBackupMetadataTable(tx: SQLTransaction, cb?: TransactionCallback)
       id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
       month INTEGER NOT NULL,
       year INTEGER NOT NULL,
-      is_backedup INTEGER NOT NULL
+      isBackedup INTEGER NOT NULL
     `,
     cb
   );
@@ -204,8 +204,8 @@ function createDbMetadataTable(tx: SQLTransaction, cb?: TransactionCallback): vo
     Tables.dbMetadata,
     `
       id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      table_name VARCHAR(25) NOT NULL,
-      restore_complete INTEGER NOT NULL
+      tableName VARCHAR(25) NOT NULL,
+      restoreComplete INTEGER NOT NULL
     `,
     cb
   );

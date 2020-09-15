@@ -4,8 +4,9 @@ import { StyleSheet, View } from "react-native";
 import Banner from "../components/Banner";
 import TransactionDragNDrop from "../components/TransactionDragNDrop";
 import { NavigationProp } from "@react-navigation/native";
-import { AccountRecord, ExpenseCategoryRecord, IncomeSourceRecord } from "../utils/sqlite-model";
+import { AccountRecord, ExpenseCategoryRecord, IncomeSourceRecord, Tables } from "../utils/sqlite-model";
 import { Currency } from "../models/currency-model";
+import { queryAll, resultRowsToArray } from "../utils/sqlite";
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -51,16 +52,25 @@ export class HomePage extends React.Component<Props, State> {
       "Grooming10",
       "Hello",
     ].map((s, i) => ({ id: i, name: s, currency: Currency.AUD, expectedPerMonth: 100, icon: "" })),
-    incomeSources: ["Salary", "Interest", "Rent", "Dividend", "Game Dev"].map((s, i) => ({
-      id: i,
-      name: s,
-      currency: Currency.AUD,
-      expectedPerMonth: 100,
-      icon: "",
-    })),
+    incomeSources: [],
   };
   constructor(props: Props) {
     super(props);
+  }
+
+  componentDidMount() {
+    this.loadIcons();
+    this.props.navigation.addListener("focus", () => {
+      this.loadIcons();
+    });
+  }
+
+  loadIcons() {
+    queryAll(Tables.incomeSource).then((result) => {
+      this.setState({
+        incomeSources: resultRowsToArray<IncomeSourceRecord>(result.rows),
+      });
+    });
   }
 
   render() {

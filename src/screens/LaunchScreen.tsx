@@ -3,6 +3,7 @@ import { View, Text } from "react-native";
 import { createAllTables } from "../utils/sqlite-create";
 import { NavigationProp } from "@react-navigation/native";
 import { StackActions } from "@react-navigation/core";
+import { dropAllTables } from "../utils/sqlite-delete";
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -25,6 +26,13 @@ export class LaunchScreen extends React.Component<Props, State> {
   }
   componentDidMount() {
     const { navigation } = this.props;
+
+    // dropAllTables((completed, failed, total) => {
+    //   if (completed === total) {
+    //     navigation.dispatch(StackActions.replace("Home"));
+    //   }
+    // });
+
     createAllTables((completed: number, failed: number, total: number) => {
       this.setState({ completed, failed, total });
       console.log(`Completed: ${completed} / ${total}. Failed: ${failed}`);

@@ -1,15 +1,7 @@
 import React from "react";
 import PT from "prop-types";
 import { Audio } from "expo-av";
-import {
-  View,
-  GestureResponderEvent,
-  StyleSheet,
-  Text,
-  Animated,
-  LayoutChangeEvent,
-  TouchableWithoutFeedback,
-} from "react-native";
+import { View, GestureResponderEvent, StyleSheet, Text, Animated, LayoutChangeEvent } from "react-native";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 
@@ -83,16 +75,16 @@ export default class Coin extends React.PureComponent<Props, State> {
   loadSounds() {
     this.popOutSound
       .loadAsync(require("../../assets/sounds/Tab2.m4a"))
-      .catch((err) => console.error("Error loading pop out sound", err));
+      .catch((err) => console.log("Error loading pop out sound", err));
 
     this.popInSound
       .loadAsync(require("../../assets/sounds/Tab1.m4a"))
-      .catch((err) => console.error("Error loading pop in sound", err));
+      .catch((err) => console.log("Error loading pop in sound", err));
   }
 
   async playSound(sound: Audio.Sound) {
-    await sound.stopAsync();
-    await sound.playAsync();
+    await sound.stopAsync().catch((ex) => console.log("Could not stop sound", ex));
+    await sound.playAsync().catch((ex) => console.log("Could not play sound", ex));
   }
 
   onResponderGrant = async (evt: GestureResponderEvent) => {

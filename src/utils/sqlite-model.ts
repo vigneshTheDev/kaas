@@ -13,9 +13,9 @@ export interface AppPreferences {
 export interface IncomeSourceRecord {
   id: number;
   name: string;
-  expectedPerMonth: number;
+  expectedPerMonth?: number;
   currency: Currency;
-  icon: string;
+  icon?: string;
 }
 
 export interface AccountRecord {

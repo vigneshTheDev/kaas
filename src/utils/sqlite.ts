@@ -19,7 +19,7 @@ function getTransactionErrorCallback(cb: (err: SQLError) => void): (_tx: SQLTran
 export type TransactionExecutor = (tx: SQLTransaction, cb?: TransactionCallback) => void;
 
 export function execReadTransaction(sqlStatement: string, args?: any[]) {
-  return new Promise((resolve, reject) => {
+  return new Promise<SQLite.SQLResultSet>((resolve, reject) => {
     const db = getDB();
     db.readTransaction(
       (tx) => {
@@ -65,7 +65,7 @@ export function execWriteQuery(tx: SQLTransaction, sql: string, args?: any[], ca
   tx.executeSql(sql, args, callback && (() => callback()), callback && getTransactionErrorCallback(callback));
 }
 
-export function queryAll(tableName: string): Promise<any> {
+export function queryAll(tableName: string): Promise<SQLite.SQLResultSet> {
   const sqlStatement = `SELECT * from ${tableName}`;
 
   return execReadTransaction(sqlStatement);
@@ -109,6 +109,16 @@ function recordToInsertable(record: any) {
   const values = cols.map((key) => record[key]);
 
   return { cols, values };
+}
+
+export function resultRowsToArray<T>(rows: SQLite.SQLResultSetRowList): T[] {
+  const length = rows.length;
+  const parsedRows: T[] = [];
+  for (let i = 0; i < length; i++) {
+    parsedRows.push(rows.item(i));
+  }
+
+  return parsedRows;
 }
 
 /**
